@@ -1,5 +1,4 @@
 from decimal import Decimal
-from pyexpat import model
 from store.models import Product, Collection
 from rest_framework import serializers
 
@@ -15,9 +14,10 @@ class CollectionSerializer(serializers.ModelSerializer):
         model = Collection
         fields = [
             'id',
-            'title'
+            'title',
+            'product_count'
         ]
-
+    product_count = serializers.IntegerField()
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,6 +25,9 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'title',
+            'description',
+            'slug',
+            'inventory',
             'unit_price',
             'price_with_tax',
             'collection' #default it will print the primary key of model
@@ -63,4 +66,9 @@ class ProductSerializer(serializers.ModelSerializer):
     #     view_name = 'collection-detail'
     # )
 
+#in the case of user registarion we need to ovweride the validation method like this
+# def validate(self, data):
+#     if data['password'] != data['confirm password']:
+#         return serializers.ValidationError('do not match')
+#     return data
 
