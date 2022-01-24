@@ -15,9 +15,9 @@ class CollectionSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'title',
-            'product_count'
+            'products_count'
         ]
-    product_count = serializers.IntegerField()
+    products_count = serializers.IntegerField(read_only=True)
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,7 +30,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'inventory',
             'unit_price',
             'price_with_tax',
-            'collection' #default it will print the primary key of model
+            'collection',
+            'price_with_vat' #default it will print the primary key of model
         ] # order of fields always matters
     # fields=' __all__' to get all the fields of a model, this must be avoided
     
@@ -39,9 +40,8 @@ class ProductSerializer(serializers.ModelSerializer):
     #always stay on conventions so do not use any other field name.
     # first it will look up all field in model if it is not there it will come on declared section.
     # we can use price in the field istead of unit_price
-    
-    price_with_tax = serializers.SerializerMethodField(
-        method_name='calculate_tax')
+    price_with_vat = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
     def calculate_tax(self, product: Product):
         return product.unit_price * Decimal(1.1)
     # using Decimal to convert the float value 1.1 into decimal as we have

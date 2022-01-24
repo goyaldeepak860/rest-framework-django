@@ -34,6 +34,8 @@ class Product(models.Model):
 
     def __str__(self) -> str:
         return self.title
+    def price_with_vat(self):
+        return self.unit_price*10 
 
     class Meta:
         ordering = ['title']
