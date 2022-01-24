@@ -97,7 +97,7 @@ class MixProductList(ListCreateAPIView):
     
                  #START OF CLASS BASED api VIEWS
                  
-# (use for much cleaner code and to bypass the if else conditions)
+      # (use for much cleaner code and to bypass the if else conditions)
 class ProductList(APIView):
     def get(self,request):
         queryset=Product.objects.select_related('collection').all()
@@ -146,7 +146,7 @@ class CollectionDetails(APIView):
     def get(self, request, pk):
         collection = get_object_or_404(Collection, pk=pk)
         serailizer= CollectionSerializer(collection)
-        return Response()
+        return Response(serailizer.data)
     
     def put (self, request, pk):
         collection = get_object_or_404(Collection, pk=pk)
