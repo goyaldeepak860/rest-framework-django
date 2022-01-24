@@ -14,7 +14,7 @@ router.urls
 # URLConf
 urlpatterns = [
     path('', include(router.urls)),
-    path('mixproductlistsimple/',views.MixProductListSimple.as_view()),
+    path('mixproductslistsimple/',views.MixProductListSimple.as_view()),
     path('mixproductslistsimple/<int:pk>/', views.MixProductDetail.as_view()),
     path('mixproducts/',views.MixProductList.as_view()),
     path('classproducts/',views.ProductList.as_view()),
