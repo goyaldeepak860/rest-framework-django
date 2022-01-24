@@ -1,8 +1,10 @@
 from django.urls import path, include
-from rest_framework.routers import SimpleRouter
+from rest_framework.routers import SimpleRouter, DefaultRouter
 from . import views
 
-router= SimpleRouter()
+ # USED WITH THE VIEWSET
+router= DefaultRouter() # it will give apiroot at /store
+# router= SimpleRouter() # SIMPLE ROUTER DOES NOT GIVE DEFAULT ROOTAPI URL
 router.register('productviewset', views.ProductViewSet)
 router.register('collectionviewset', views.CollectionViewSet)
 router.urls

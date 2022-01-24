@@ -6,12 +6,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from .models import Collection, Product
+from .models import Collection, OrderItem, Product
 from django.db.models import Count
 from .serializers import ProductSerializer, CollectionSerializer
+
 # Create your views here.
 
-      #USING VIEWSETS TO AVOID DUPLICACY IN GENERIC VIEWS
+#---------------START OF USING VIEWSETS TO AVOID DUPLICACY IN GENERIC VIEWS--------------------#
+
 class ProductViewSet(ModelViewSet):
     #so all common expressions put in a place like below
     queryset = Product.objects.all()
@@ -19,27 +21,24 @@ class ProductViewSet(ModelViewSet):
     def get_serializer_context(self):
         return {'request': self.request}
     
-    def delete(self, request, id):
-        product= get_object_or_404(Product, pk=id)
-        if product.orderitems.count()>0:
+    def destroy(self, request, *args, **kwargs):
+        if  OrderItem.objects.filter(product_id=kwargs['pk']).count >0:
             return Response("can not be deleted")
-        product.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
+        return super().destroy(request, *args, **kwargs)
+    
 class CollectionViewSet(ModelViewSet):
     queryset = Collection.objects.annotate(products_count=Count('products')).all()
     serializer_class= CollectionSerializer
-    def delete(self, request, pk):#As we have some conditions in this.
-        collection=get_object_or_404(Collection, pk=pk)
-        if collection.products.count() > 0:
-            return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        collection.delete()
-        return Response(status = status.HTTP_204_NO_CONTENT)
+    def destroy(self, request, *args, **kwargs):
+        if  Product.objects.filter(collection_id=kwargs['pk']).count >0:
+            return Response("can not be deleted")
+        return super().destroy(request, *args, **kwargs)
+    
+    
+#---------------END OF USING VIEWSETS TO AVOID DUPLICACY IN GENERIC VIEWS--------------------#
 
 
-
-
-# START OF REQUEST MADE BY GENERIC VIEWS(BEST SOLUTION TO FOLLOW)
+#-----------------------START OF REQUEST MADE BY GENERIC VIEWS---------------------------------#
 
 class MixProductListSimple(ListCreateAPIView): #combines get post methods
    # USING BELOW ARGUMENTS AS WE DO NOT HAVE ANY SPECIAL LOGIC 
@@ -78,7 +77,7 @@ class MixCollectionDetails(RetrieveUpdateDestroyAPIView):
         collection.delete()
         return Response(status = status.HTTP_204_NO_CONTENT)
 
- # END OF REQUEST MADE BY GENERIC VIEWS (BEST SOLUTION TO FOLLOW)
+ #---------------END OF REQUEST MADE BY GENERIC VIEWS (BEST SOLUTION TO FOLLOW)---------------#
             
             #ADDITIONAL CONDITIONS SERVED IN GENERIC VIEWS
 
@@ -95,7 +94,7 @@ class MixProductList(ListCreateAPIView):
     def get_serializer_context(self):
         return {'request': self.request}
     
-                 #START OF CLASS BASED api VIEWS
+#------------------------#START OF CLASS BASED api VIEWS--------------------------------------#
                  
       # (use for much cleaner code and to bypass the if else conditions)
 class ProductList(APIView):
@@ -162,19 +161,13 @@ class CollectionDetails(APIView):
         collection.delete()
         return Response(status = status.HTTP_204_NO_CONTENT)        
 
-
-                    #END OF CLASS BASED api VIEWS
-
+#-------------------------END OF CLASS BASED API VIEWS----------------------------------------#
 
 
+#-------------------------START OF FUNCTION BASED API VIEWS-----------------------------------#
 
-
-
-
-
-
-
-@api_view(['GET','POST']) #arguments should be passed to deserialize the data. default is get
+@api_view(['GET','POST']) 
+#arguments should be passed to deserialize the data. default is 'get'.
 def product_list(request):
     
     if request.method == 'GET' :
@@ -190,19 +183,19 @@ def product_list(request):
     
     elif request.method == 'POST': #deserialization happens
         serializer = ProductSerializer(data=request.data)
-        
+
         # if serializer.is_valid():
         #     serializer.validated_data
         #     return Response ('ok')
         # else:
         #     return Response (serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Alternate of above code
+                    # Alternate of above code
         serializer.is_valid(raise_exception=True)
         serializer.save() #to save in database so we do not need the line 35
         # print(serializer.validated_data)
         return Response (serializer.data, status=status.HTTP_201_CREATED)
-        
+
 
 @api_view()
 def product_detail_alternate(request, id):
@@ -217,17 +210,17 @@ def product_detail_alternate(request, id):
 def product_detail(request, id): 
     #Bypassing of try and except
     product = get_object_or_404(Product, pk=id) #2 parameters required first is model name other is look up rule
-    
+
     if request.method =='GET':
         serializer = ProductSerializer(product) #converts python dictionary to json
         return Response(serializer.data)
-    
+
     elif request.method == 'PUT':
         serializer= ProductSerializer(product, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-    
+
     elif request.method == 'DELETE':
         # if product.orderitem_set.count()>0: # if we not use any related name
         if product.orderitems.count()>0: #here we are using related name from models.py line 85
@@ -243,13 +236,13 @@ def collection_list(request):
          queryset = Collection.objects.annotate(products_count=Count('products')).all()
          serializer = CollectionSerializer(queryset, many=True)
          return Response(serializer.data)
-    
+
     elif request.method == 'POST':
          serializer = CollectionSerializer(data=request.data)
          serializer.is_valid(raise_exception=True)
          serializer.save()
          return Response(serializer.data, status=status.HTTP_201_CREATED)
-     
+
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def collection_detail(request, pk):
@@ -272,12 +265,6 @@ def collection_detail(request, pk):
             return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         collection.delete()
         return Response(status = status.HTTP_204_NO_CONTENT)
-    
-    
-    
-    
-        
-        
-        
-    
-   
+
+
+#-------------------------END OF FUNCTION BASED API VIEWS-----------------------------------#
