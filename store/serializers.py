@@ -1,5 +1,5 @@
 from decimal import Decimal
-from store.models import Product, Collection
+from store.models import Product, Collection, Review
 from rest_framework import serializers
 
 
@@ -9,15 +9,6 @@ from rest_framework import serializers
     
 # Use of ModelSerializer(used to avoid duplication), 
 # that must be preffered appraoach than the above one
-class CollectionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Collection
-        fields = [
-            'id',
-            'title',
-            'products_count'
-        ]
-    products_count = serializers.IntegerField(read_only=True)
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
@@ -72,3 +63,30 @@ class ProductSerializer(serializers.ModelSerializer):
 #         return serializers.ValidationError('do not match')
 #     return data
 
+
+class CollectionSerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True) #Fetching the records of products
+    products_count = serializers.IntegerField(read_only=True)
+    class Meta:
+        model = Collection
+        fields = [
+            'id',
+            'title',
+            'products_count',
+            'products'
+        ] #Should be in alphabatical order
+    
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = [
+            'id',
+            'date',
+            'name',
+            'product',
+            'description',
+            'uuid'
+        ]
+    uuid = serializers.UUIDField(read_only=True)

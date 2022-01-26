@@ -1,18 +1,20 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, response
 from rest_framework.decorators import api_view
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import UpdateAPIView, CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from .models import Collection, OrderItem, Product
+from django.core.exceptions import ValidationError
+from .models import Collection, OrderItem, Product, Review
 from django.db.models import Count
-from .serializers import ProductSerializer, CollectionSerializer
+from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
 
 # Create your views here.
 
 #---------------START OF USING VIEWSETS TO AVOID DUPLICACY IN GENERIC VIEWS--------------------#
+#---------------(PREFERABLY NOT GOING TO USE DUE TO CUSTOMIZATION ISSUES)......................#
 
 class ProductViewSet(ModelViewSet):
     #so all common expressions put in a place like below
@@ -38,8 +40,46 @@ class CollectionViewSet(ModelViewSet):
 #---------------END OF USING VIEWSETS TO AVOID DUPLICACY IN GENERIC VIEWS--------------------#
 
 
-#-----------------------START OF REQUEST MADE BY GENERIC VIEWS---------------------------------#
+#-----------------------START OF REQUEST MADE BY GENERIC VIEWS--------------------------------#
+#--------------(PREFFERED TO USE IN THE PRODUCT DUE TO CUSTOMIZATIONS)------------------------#
 
+class MoveProductToCollectionView(UpdateAPIView):
+     queryset = Product.objects.all()
+     serializer_class = ProductSerializer
+     lookup_field = 'pk'
+     def perform_update(self, serializer):
+        related_product = Product.objects.get(id = self.kwargs['pk'])
+        related_collection = Collection.objects.get(id = self.kwargs['collection_id'])
+        if related_product.collection.id == related_collection.id :
+           raise ValidationError ('Source and Destination can not be Same:')
+        
+        elif (Product.objects.filter(collection__id = self.kwargs['collection_id']).count() > 0):
+            raise ValidationError ("Product can not be Moved as collection has only one product")
+        else :
+            serializer.save(collection = related_collection)
+
+
+
+
+
+class ReviewGeneric(ListCreateAPIView):
+    def get_queryset(self, *args, **kwargs):
+        return Review.objects.filter(product__id = self.kwargs['product_id'])
+
+    def get_serializer_class(self):
+        return ReviewSerializer
+    
+   
+
+class ReviewDetailGeneric(RetrieveUpdateDestroyAPIView):
+    def get_queryset(self):
+        return Review.objects.all()
+
+    def get_serializer_class(self):
+        return ReviewSerializer
+    lookup_field = 'pk'
+    
+    
 class MixProductListSimple(ListCreateAPIView): #combines get post methods
    # USING BELOW ARGUMENTS AS WE DO NOT HAVE ANY SPECIAL LOGIC 
     # AND JUST WANT TO RETURN A simple expression
@@ -53,10 +93,10 @@ class MixProductListSimple(ListCreateAPIView): #combines get post methods
 class MixProductDetail(RetrieveUpdateDestroyAPIView):
     queryset= Product.objects.select_related('collection').all()
     serializer_class = ProductSerializer
-    # lookup_field = 'id' #Always try to avoid that and use fix conventions.
-    # for this just change id to pk in the urls line 7
-    def delete(self, request, id):
-        product= get_object_or_404(Product, pk=id)
+    lookup_field = 'slug' #Always try to avoid that and use fix conventions.'slug' was id previously
+    # for this just change id to pk in the urls
+    def delete(self, request, slug): #slug=id previously
+        product= get_object_or_404(Product,slug=slug) #pk=id
         if product.orderitems.count()>0:
             return Response("can not be deleted")
         product.delete()
@@ -68,21 +108,21 @@ class MixCollectionList(ListCreateAPIView):
 
 class MixCollectionDetails(RetrieveUpdateDestroyAPIView):
     queryset = Collection.objects.annotate(products_count=Count('products')).all()
-    serializer_class= CollectionSerializer
+    serializer_class = CollectionSerializer
     
     def delete(self, request, pk):#As we have some conditions in this.
-        collection=get_object_or_404(Collection, pk=pk)
+        collection = get_object_or_404(Collection, pk=pk)
         if collection.products.count() > 0:
             return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         collection.delete()
         return Response(status = status.HTTP_204_NO_CONTENT)
 
- #---------------END OF REQUEST MADE BY GENERIC VIEWS (BEST SOLUTION TO FOLLOW)---------------#
-            
-            #ADDITIONAL CONDITIONS SERVED IN GENERIC VIEWS
+#-----------------END OF REQUEST MADE BY GENERIC VIEWS (BEST SOLUTION TO FOLLOW)---------------#
+
+#----------------------ADDITIONAL CONDITIONS SERVED IN GENERIC VIEWS--------------------------#
 
 class MixProductList(ListCreateAPIView):
-    
+
     #  Use the below methods if we have some different logics or return some
     # extra informations in the queryset.
     def get_queryset(self):
@@ -93,16 +133,18 @@ class MixProductList(ListCreateAPIView):
     
     def get_serializer_context(self):
         return {'request': self.request}
-    
+
+
+
 #------------------------#START OF CLASS BASED api VIEWS--------------------------------------#
-                 
+
       # (use for much cleaner code and to bypass the if else conditions)
 class ProductList(APIView):
     def get(self,request):
         queryset=Product.objects.select_related('collection').all()
         serializer=ProductSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
-    
+
     def post(self, request):
         serializer = ProductSerializer(data = request.data)
         serializer.is_valid(raise_exception=True)
@@ -110,20 +152,20 @@ class ProductList(APIView):
         return Response(serializer.data,status=status.HTTP_201_CREATED)
 
 class ProductDetail(APIView):
-    def get(self, request, id):
-        product = get_object_or_404(Product, pk=id)
+    def get(self, request, slug):
+        product = get_object_or_404(Product, slug=slug)
         serializer = ProductSerializer(product)
         return Response(serializer.data)
     
-    def put(self, request, id):
-        product= get_object_or_404(Product, pk=id)
+    def put(self, request, slug):
+        product= get_object_or_404(Product, slug=slug)
         serializer = ProductSerializer(product, data= request.data)
         serializer.is_valid(raise_exception= True)
         serializer.save()
         return Response({'Successfully Updated'})
     
-    def delete(self, request, id):
-        product= get_object_or_404(Product, pk=id)
+    def delete(self, request, slug):
+        product= get_object_or_404(Product, slug=slug)
         if product.orderitems.count()>0:
             return Response("can not be deleted")
         product.delete()

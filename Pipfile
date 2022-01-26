@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 django = "~=3.2.3"
 djangorestframework = "*"
+drf-nested-routers = "*"
 
 [dev-packages]
 autopep8 = "*"
