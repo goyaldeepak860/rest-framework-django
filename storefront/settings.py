@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'storefront.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ecommerce',
+        'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': 'admin',
         'HOST': 'db',
