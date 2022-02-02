@@ -1,7 +1,7 @@
-from cgitb import lookup
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.decorators import api_view
 from rest_framework.generics import UpdateAPIView, CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.exceptions import ValidationError
-
 from store.filters import ProductFilter
 from .models import Collection, OrderItem, Product, Review
 from django.db.models import Count
@@ -62,6 +61,9 @@ class MoveProductToCollectionView(UpdateAPIView):
         else :
             serializer.save(collection = related_collection)
 
+#------------------------------------(START OF FILTERATION)------------------------------------------#
+
+
 class FilterCollection(ListCreateAPIView):
     def get_serializer_class(self):
         return ProductSerializer
@@ -69,18 +71,15 @@ class FilterCollection(ListCreateAPIView):
     def get_queryset(self, *args, **kwargs):
         return Product.objects.filter(collection_id = self.kwargs['collection_id'])
        
-class DjangoFilterCollection(ListCreateAPIView):
+class DjangoFilterProduct(ListCreateAPIView):
     queryset = Product.objects.all()
-    filter_backends = [DjangoFilterBackend]
-    # filterset_fields = ['collection_id']
+    filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
+    # filterset_fields = ['collection_id'] #in case if we are defining any class
     filterset_class = ProductFilter
+    search_fields = ['title' , 'description' ]
+    ordering_fields = ['unit_price' , 'last_update']
     def get_serializer_class(self):
         return ProductSerializer
-    
-
-
-
-
 
 class ReviewGeneric(ListCreateAPIView):
     def get_queryset(self, *args, **kwargs):
@@ -89,8 +88,6 @@ class ReviewGeneric(ListCreateAPIView):
     def get_serializer_class(self):
         return ReviewSerializer
     
-   
-
 class ReviewDetailGeneric(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Review.objects.all()
@@ -99,7 +96,10 @@ class ReviewDetailGeneric(RetrieveUpdateDestroyAPIView):
         return ReviewSerializer
     lookup_field = 'pk'
     
-    
+#------------------------------------END OF FILTERATION---------------------------------------#    
+
+
+
 class MixProductListSimple(ListCreateAPIView): #combines get post methods
    # USING BELOW ARGUMENTS AS WE DO NOT HAVE ANY SPECIAL LOGIC 
     # AND JUST WANT TO RETURN A simple expression

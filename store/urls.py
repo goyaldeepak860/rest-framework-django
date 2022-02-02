@@ -19,7 +19,7 @@ router.register('collectionviewset', views.CollectionViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     # path('', include(products_router.urls)),DjangoFilterCollection
-    path('djangofiltercollection/', views.DjangoFilterCollection.as_view()),
+    path('products/djangofilterproducts/', views.DjangoFilterProduct.as_view()),
     path('products/collections/<collection_id>', views.FilterCollection.as_view()),
     path('moveproducttocollection/products/<int:pk>/collections/<int:collection_id>/', views.MoveProductToCollectionView.as_view()),
     path('products/<int:product_id>/reviews/',views.ReviewGeneric.as_view()),
