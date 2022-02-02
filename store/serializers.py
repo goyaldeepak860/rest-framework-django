@@ -11,6 +11,10 @@ from rest_framework import serializers
 # that must be preffered appraoach than the above one
 
 class ProductSerializer(serializers.ModelSerializer):
+    price_with_vat = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+    price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
+    def calculate_tax(self, product: Product):
+        return product.unit_price * Decimal(1.1)
     class Meta:
         model = Product
         fields = [
@@ -31,10 +35,7 @@ class ProductSerializer(serializers.ModelSerializer):
     #always stay on conventions so do not use any other field name.
     # first it will look up all field in model if it is not there it will come on declared section.
     # we can use price in the field istead of unit_price
-    price_with_vat = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
-    price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
-    def calculate_tax(self, product: Product):
-        return product.unit_price * Decimal(1.1)
+
     # using Decimal to convert the float value 1.1 into decimal as we have
     # unit_price field in decimal so we can multiply a decimal to a float
     # so we need this object Decimal.

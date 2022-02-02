@@ -9,7 +9,9 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.exceptions import ValidationError
-from store.filters import ProductFilter
+
+from store.pagination import DefaultPagination
+from .filters import ProductFilter
 from .models import Collection, OrderItem, Product, Review
 from django.db.models import Count
 from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
@@ -67,16 +69,37 @@ class MoveProductToCollectionView(UpdateAPIView):
 class FilterCollection(ListCreateAPIView):
     def get_serializer_class(self):
         return ProductSerializer
-    lookup_field = 'collection_id'   
+    # lookup_field = 'collection_id'   
     def get_queryset(self, *args, **kwargs):
-        return Product.objects.filter(collection_id = self.kwargs['collection_id'])
+        # related_collection = get_object_or_404(Collection,id = self.kwargs['collection_id'])
+        # return related_collection.products.all()
+        return Product.objects.filter(collection_id = self.kwargs['abcd_id'])
+    
+class FilterCollectionRetr(RetrieveUpdateDestroyAPIView):
+    queryset = Collection.objects.all()
+    serializer_class = CollectionSerializer
+    lookup_field = 'pk'
+      
+   
+    
+    # def delete(self, request, collection_id):#As we have some conditions in this.
+    #     collection = get_object_or_404(Collection, pk=collection_id)
+    #     if collection.products.count() > 0:
+    #         return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    #     collection.delete()
+    #     return Response(status = status.HTTP_204_NO_CONTENT)
+        
+
        
+
+
 class DjangoFilterProduct(ListCreateAPIView):
     queryset = Product.objects.all()
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     # filterset_fields = ['collection_id'] #in case if we are defining any class
     filterset_class = ProductFilter
-    search_fields = ['title' , 'description' ]
+    pagination_class = DefaultPagination
+    search_fields = ['title' , 'description']
     ordering_fields = ['unit_price' , 'last_update']
     def get_serializer_class(self):
         return ProductSerializer
@@ -105,6 +128,11 @@ class MixProductListSimple(ListCreateAPIView): #combines get post methods
     # AND JUST WANT TO RETURN A simple expression
     queryset=Product.objects.select_related('collection').all()
     serializer_class=ProductSerializer
+    filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
+    # filterset_fields = ['collection_id'] #in case if we are defining any class
+    filterset_class = ProductFilter
+    search_fields = ['title' , 'description' ]
+    ordering_fields = ['unit_price' , 'last_update']
     
     def get_serializer_context(self):
         return {'request': self.request}
