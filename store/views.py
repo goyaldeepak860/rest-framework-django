@@ -1,5 +1,7 @@
+from cgitb import lookup
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, response
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import api_view
 from rest_framework.generics import UpdateAPIView, CreateAPIView, ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.response import Response
@@ -7,6 +9,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.exceptions import ValidationError
+
+from store.filters import ProductFilter
 from .models import Collection, OrderItem, Product, Review
 from django.db.models import Count
 from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializer
@@ -57,6 +61,22 @@ class MoveProductToCollectionView(UpdateAPIView):
             raise ValidationError ("Product can not be Moved as collection has only one product")
         else :
             serializer.save(collection = related_collection)
+
+class FilterCollection(ListCreateAPIView):
+    def get_serializer_class(self):
+        return ProductSerializer
+    lookup_field = 'collection_id'   
+    def get_queryset(self, *args, **kwargs):
+        return Product.objects.filter(collection_id = self.kwargs['collection_id'])
+       
+class DjangoFilterCollection(ListCreateAPIView):
+    queryset = Product.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    # filterset_fields = ['collection_id']
+    filterset_class = ProductFilter
+    def get_serializer_class(self):
+        return ProductSerializer
+    
 
 
 

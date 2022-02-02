@@ -18,7 +18,9 @@ router.register('collectionviewset', views.CollectionViewSet)
 # URLConf
 urlpatterns = [
     path('', include(router.urls)),
-    # path('', include(products_router.urls)),
+    # path('', include(products_router.urls)),DjangoFilterCollection
+    path('djangofiltercollection/', views.DjangoFilterCollection.as_view()),
+    path('products/collections/<collection_id>', views.FilterCollection.as_view()),
     path('moveproducttocollection/products/<int:pk>/collections/<int:collection_id>/', views.MoveProductToCollectionView.as_view()),
     path('products/<int:product_id>/reviews/',views.ReviewGeneric.as_view()),
     path('reviews/<int:pk>/',views.ReviewDetailGeneric.as_view()),
