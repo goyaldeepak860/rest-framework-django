@@ -9,7 +9,6 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.exceptions import ValidationError
-
 from store.pagination import DefaultPagination
 from .filters import ProductFilter
 from .models import Collection, OrderItem, Product, Review
@@ -22,6 +21,7 @@ from .serializers import ProductSerializer, CollectionSerializer, ReviewSerializ
 #---------------(PREFERABLY NOT GOING TO USE DUE TO CUSTOMIZATION ISSUES)......................#
 
 class ProductViewSet(ModelViewSet):
+    
     #so all common expressions put in a place like below
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
@@ -34,8 +34,10 @@ class ProductViewSet(ModelViewSet):
         return super().destroy(request, *args, **kwargs)
     
 class CollectionViewSet(ModelViewSet):
+    
     queryset = Collection.objects.annotate(products_count=Count('products')).all()
     serializer_class= CollectionSerializer
+    
     def destroy(self, request, *args, **kwargs):
         if  Product.objects.filter(collection_id=kwargs['pk']).count >0:
             return Response("can not be deleted")
@@ -49,10 +51,12 @@ class CollectionViewSet(ModelViewSet):
 #--------------(PREFFERED TO USE IN THE PRODUCT DUE TO CUSTOMIZATIONS)------------------------#
 
 class MoveProductToCollectionView(UpdateAPIView):
-     queryset = Product.objects.all()
-     serializer_class = ProductSerializer
-     lookup_field = 'pk'
-     def perform_update(self, serializer):
+    
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    lookup_field = 'pk'
+    
+    def perform_update(self, serializer):
         related_product = Product.objects.get(id = self.kwargs['pk'])
         related_collection = Collection.objects.get(id = self.kwargs['collection_id'])
         if related_product.collection.id == related_collection.id :
@@ -67,56 +71,49 @@ class MoveProductToCollectionView(UpdateAPIView):
 
 
 class FilterCollection(ListCreateAPIView):
-    def get_serializer_class(self):
-        return ProductSerializer
+    
+    serializer_class = ProductSerializer
     # lookup_field = 'collection_id'   
+    
     def get_queryset(self, *args, **kwargs):
         # related_collection = get_object_or_404(Collection,id = self.kwargs['collection_id'])
         # return related_collection.products.all()
-        return Product.objects.filter(collection_id = self.kwargs['abcd_id'])
+        return Product.objects.filter(collection_id = self.kwargs['collection_id'])
     
+
 class FilterCollectionRetr(RetrieveUpdateDestroyAPIView):
+    
     queryset = Collection.objects.all()
     serializer_class = CollectionSerializer
     lookup_field = 'pk'
       
    
-    
-    # def delete(self, request, collection_id):#As we have some conditions in this.
-    #     collection = get_object_or_404(Collection, pk=collection_id)
-    #     if collection.products.count() > 0:
-    #         return Response({'error': 'Collection cannot be deleted because it includes one or more products.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-    #     collection.delete()
-    #     return Response(status = status.HTTP_204_NO_CONTENT)
-        
-
-       
-
-
 class DjangoFilterProduct(ListCreateAPIView):
+    
+    serializer_class = ProductSerializer
     queryset = Product.objects.all()
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     # filterset_fields = ['collection_id'] #in case if we are defining any class
     filterset_class = ProductFilter
     pagination_class = DefaultPagination
-    search_fields = ['title' , 'description']
+    search_fields = ['title' , 'description' , 'collection__title']
     ordering_fields = ['unit_price' , 'last_update']
-    def get_serializer_class(self):
-        return ProductSerializer
+    
 
 class ReviewGeneric(ListCreateAPIView):
+    
+    serializer_class = ReviewSerializer
     def get_queryset(self, *args, **kwargs):
         return Review.objects.filter(product__id = self.kwargs['product_id'])
 
-    def get_serializer_class(self):
-        return ReviewSerializer
+    
     
 class ReviewDetailGeneric(RetrieveUpdateDestroyAPIView):
+    
+    serializer_class = ReviewSerializer
     def get_queryset(self):
         return Review.objects.all()
-
-    def get_serializer_class(self):
-        return ReviewSerializer
+   
     lookup_field = 'pk'
     
 #------------------------------------END OF FILTERATION---------------------------------------#    
@@ -124,7 +121,7 @@ class ReviewDetailGeneric(RetrieveUpdateDestroyAPIView):
 
 
 class MixProductListSimple(ListCreateAPIView): #combines get post methods
-   # USING BELOW ARGUMENTS AS WE DO NOT HAVE ANY SPECIAL LOGIC 
+    # USING BELOW ARGUMENTS AS WE DO NOT HAVE ANY SPECIAL LOGIC 
     # AND JUST WANT TO RETURN A simple expression
     queryset=Product.objects.select_related('collection').all()
     serializer_class=ProductSerializer
@@ -139,10 +136,12 @@ class MixProductListSimple(ListCreateAPIView): #combines get post methods
 
 # Usinf gneneric views we can implement Get/Put/Delete like Below:
 class MixProductDetail(RetrieveUpdateDestroyAPIView):
+    
     queryset= Product.objects.select_related('collection').all()
     serializer_class = ProductSerializer
     lookup_field = 'slug' #Always try to avoid that and use fix conventions.'slug' was id previously
     # for this just change id to pk in the urls
+    
     def delete(self, request, slug): #slug=id previously
         product= get_object_or_404(Product,slug=slug) #pk=id
         if product.orderitems.count()>0:
@@ -150,11 +149,14 @@ class MixProductDetail(RetrieveUpdateDestroyAPIView):
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
 class MixCollectionList(ListCreateAPIView):
+    
     queryset = Collection.objects.annotate(products_count=Count('products')).all()
     serializer_class= CollectionSerializer
 
 class MixCollectionDetails(RetrieveUpdateDestroyAPIView):
+    
     queryset = Collection.objects.annotate(products_count=Count('products')).all()
     serializer_class = CollectionSerializer
     
